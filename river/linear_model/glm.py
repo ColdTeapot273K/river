@@ -107,9 +107,7 @@ class GLM:
         self, X: pd.DataFrame, y: pd.Series, w: typing.Union[float, pd.Series]
     ) -> (dict, float):
 
-        loss_gradient = self.loss.gradient(
-            y_true=y.values, y_pred=self._raw_dot_many(X)
-        )
+        loss_gradient = self.loss.gradient(y_true=y.values, y_pred=self._raw_dot_many(X))
         loss_gradient *= w
         loss_gradient = np.clip(loss_gradient, -self.clip_gradient, self.clip_gradient)
 
@@ -118,7 +116,23 @@ class GLM:
         # gradient. When this is all done, we collapse X by computing the average of each column,
         # thereby obtaining the mean gradient of the batch. From thereon, the code reduces to the
         # single instance case.
-        gradient = np.einsum("ij,i->ij", X.values, loss_gradient).mean(axis=0)
+        # gradient = np.einsum("ij,i->ij", X.values, loss_gradient).mean(axis=0)
+        gradient = np.einsum("ij,i->ij", X.values, loss_gradient)
+        # print(f'{gradient=}')
+
+        # print(f"{loss_gradient=}")
+        # print(f"{gradient=}")
+
+        gradient = gradient.mean(axis=0)
+        # print(f"{gradient=}")
+        # print(f"{self._weights=}")
+        # print(f"{(self.l2 * self._weights)=}")
+        # print(f"{(self.l2 * self._weights.to_numpy(X.columns))=}")
+
+        # gradient += self.l2 * self._weights
+        gradient += self.l2 * self._weights.to_numpy(X.columns)
+
+        # print(f"{gradient=}")
 
         return dict(zip(X.columns, gradient)), loss_gradient.mean()
 
